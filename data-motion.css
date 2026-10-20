@@ -1,0 +1,15 @@
+.tool-nav{max-width:560px}
+#dataWorkspace{padding-top:0}
+#dataWorkspace .stage{position:sticky;top:16px}
+#dataWorkspace .dm-field{display:grid;gap:5px;font-size:12px;color:var(--muted);min-width:0}
+#dataWorkspace input:not([type=range]),#dataWorkspace select{width:100%;min-width:0;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:7px;font:inherit;font-size:13px}
+#dataWorkspace .dm-item{display:grid;gap:8px;border-top:1px solid var(--line);padding:14px 0}
+#dataWorkspace .dm-item.selected{border-top-color:var(--accent)}
+#dataWorkspace .dm-actions{display:flex;gap:5px;flex-wrap:wrap}
+#dataWorkspace .dm-counts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#dataWorkspace .dm-color{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted);gap:8px;margin-bottom:6px}
+#dataWorkspace input[type=color]{width:64px;height:32px;padding:3px}
+#dataWorkspace .hint{margin:0}
+#dataWorkspace .toolbar select{width:auto}
+#dataWorkspace canvas{max-height:65vh;width:auto;height:auto}
+@media(max-width:860px){#dataWorkspace .stage{position:static;grid-row:1}#dataWorkspace canvas{max-height:45vh}}

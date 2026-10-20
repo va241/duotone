@@ -85,7 +85,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 <div class="wrap">
   <header>
     <h1>Design Tools <span>x Public Design UNIT</span></h1>
-    <p class="sub">Duotones, atmospheric backgrounds and animated photo masks.</p>
+    <p class="sub">Duotones, atmospheric backgrounds, animated photo masks and report graphics.</p>
   </header>
 
       <nav class="tool-nav" aria-label="Design tools">
@@ -93,6 +93,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
         <div class="seg" role="group" aria-label="Tool">
           <button id="modeDuotone" aria-pressed="true">Duotone</button>
           <button id="modeBackground" aria-pressed="false">Backgrounds</button>
+          <button id="modeData" aria-pressed="false">Data Motion</button>
           <button id="modeMask" aria-pressed="false">Masks</button>
         </div>
       </nav>
@@ -229,6 +230,25 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 </div>
 </div>
 </div></div>
+
+<link rel="stylesheet" href="data-motion.css">
+<div class="wrap" id="dataWorkspace" hidden><div class="main">
+<aside class="panel" aria-label="Data Motion settings">
+<div class="group"><div class="label">Data items <span id="dm_count"></span></div>
+<div id="dm_items"></div><p class="hint" id="dm_empty">Build an animated report graphic. Add a value, a label and a visual to get started.</p><button class="btn" id="dm_add">+ Add data item</button>
+<p class="hint">Each item becomes a frame in the loop. Highlighted / Total controls the graphic independently of the displayed value. Up to 100 icons per item.</p></div>
+<div class="group"><div class="label">Format & timing</div>
+<label class="dm-field">Aspect ratio<select id="dm_fmt"><option value="1:1">Square 1:1</option><option value="4:5">Portrait 4:5</option><option value="9:16">Story 9:16</option><option value="16:9">Landscape 16:9</option></select></label>
+<label class="dm-field">Time per item <output id="dm_durValue"></output><input type="range" id="dm_dur" min="1.5" max="6" step="0.1"></label>
+<label class="dm-field">Number animation<select id="dm_numStyle"><option value="roll">Rolling digits</option><option value="count">Count up</option><option value="static">Static value</option></select></label></div>
+<div class="group"><div class="label">Colors</div><div id="dm_colors"></div><button class="btn small" id="dm_palette">Use Duotone palette</button></div>
+</aside>
+<section class="stage"><div class="toolbar"><span class="meta" id="dm_position"></span><div class="dm-actions"><button class="btn small" id="dm_play">Pause</button><button class="btn small" id="dm_restart">Restart</button></div></div>
+<div class="canvasbox"><canvas id="dm_preview" width="1080" height="1080" aria-label="Data Motion preview"></canvas></div>
+<div class="toolbar"><div class="dm-actions"><select id="dm_size" aria-label="Export width"><option value="540">540 px</option><option value="720" selected>720 px</option><option value="1080">1080 px</option></select><select id="dm_fps" aria-label="Export frame rate"><option value="10">10 fps</option><option value="15" selected>15 fps</option><option value="20">20 fps</option></select></div><div class="dm-actions"><button class="btn" id="dm_png">Export PNG</button><button class="btn primary" id="dm_export">Export GIF</button></div></div>
+<p class="hint">Use Preview on an item to inspect it. PNG exports that item; GIF exports the complete loop. Everything is processed in your browser.</p><div class="status" id="dm_status" role="status"></div>
+</section></div></div>
+
 <script src="blur.js"></script>
 <script>
 const DEFAULTS={noise:5,black:18,white:255,gamma:1.04,c1:"#495A99",c2:"#F0ECDD"};
@@ -355,10 +375,11 @@ function refreshStrip(){
 
 // ---- Controls ----
 function syncUI(){
-  const bg=toolMode==="backgrounds", mask=toolMode==="masks";
-  $("imageWorkspace").hidden=mask;$("maskWorkspace").hidden=!mask;
+  const bg=toolMode==="backgrounds", mask=toolMode==="masks", data=toolMode==="data";
+  $("dataWorkspace").hidden=!data;$("modeData").setAttribute("aria-pressed",data);
+  $("imageWorkspace").hidden=mask||data;$("maskWorkspace").hidden=!mask;
   $("modeMask").setAttribute("aria-pressed",mask);
-  $("modeDuotone").setAttribute("aria-pressed",!bg&&!mask);$("modeBackground").setAttribute("aria-pressed",bg);
+  $("modeDuotone").setAttribute("aria-pressed",!bg&&!mask&&!data);$("modeBackground").setAttribute("aria-pressed",bg);
   $("backgroundControls").hidden=!bg;$("colorControls").hidden=bg&&!$("backgroundDuotone").checked;
   $("blurGaussian").setAttribute("aria-pressed",blurType==="gaussian");$("blurMotion").setAttribute("aria-pressed",blurType==="motion");
   $("angleControl").hidden=blurType!=="motion";
@@ -372,6 +393,7 @@ function syncUI(){
   drawPresets();
 }
 $("modeDuotone").onclick=()=>{toolMode="duotone";syncUI();schedule();};
+$("modeData").onclick=()=>{toolMode="data";syncUI();};
 $("modeMask").onclick=()=>{toolMode="masks";syncUI();};
 $("modeBackground").onclick=()=>{toolMode="backgrounds";syncUI();schedule();};
 $("blurGaussian").onclick=()=>{blurType="gaussian";syncUI();schedule();};
@@ -430,7 +452,7 @@ const drop=$("drop");
 ["dragenter","dragover"].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.add("drag");}));
 ["dragleave","drop"].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.remove("drag");}));
 drop.addEventListener("drop",e=>addFiles(e.dataTransfer.files));
-document.addEventListener("paste",e=>{if(toolMode==="masks")return;const f=[...(e.clipboardData?.files||[])];if(f.length)addFiles(f);});
+document.addEventListener("paste",e=>{if(toolMode==="masks"||toolMode==="data")return;const f=[...(e.clipboardData?.files||[])];if(f.length)addFiles(f);});
 
 // ---- Export ----
 function setStatus(t){$("status").textContent=t;}
@@ -474,4 +496,5 @@ refreshStrip();
 </script>
 
 <script src="mask.js"></script>
+<script src="data-motion.js"></script>
 </body></html>
