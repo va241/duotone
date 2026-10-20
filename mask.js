@@ -135,13 +135,14 @@ function drawPhotos(){const box=$('m_photos');box.textContent='';
   const sel=i===EDIT;
   const thumb=el('button',{className:'pbtn',title:sel?'Finish editing':'Adjust crop',onclick:()=>setEdit(sel?-1:i)},[el('img',{src:ph.src,className:'pthumb',alt:''})]);thumb.setAttribute('aria-label',(sel?'Finish editing':'Adjust crop for')+' photo '+(i+1));thumb.setAttribute('aria-pressed',String(sel));
   const row=el('div',{className:'prow'+(sel?' on':'')},[el('div',{className:'n',textContent:String(i+1).padStart(2,'0')}),thumb,
-   el('div',{className:'ptools'},[el('button',{className:'adj',textContent:sel?'Done':'Adjust',onclick:()=>setEdit(sel?-1:i)}),b('↑','Move up',()=>mv2(i,-1)),b('↓','Move down',()=>mv2(i,1)),b('×','Remove',()=>{S2.photos.splice(i,1);if(EDIT===i)EDIT=-1;else if(EDIT>i)EDIT--;save2();drawPhotos()})])]);
+   el('div',{className:'ptools'},[el('button',{className:'adj',textContent:sel?'Done':'Adjust',onclick:()=>setEdit(sel?-1:i)}),b('↑','Reorder earlier',()=>mv2(i,-1)),b('↓','Reorder later',()=>mv2(i,1)),b('×','Remove',()=>{S2.photos.splice(i,1);if(EDIT===i)EDIT=-1;else if(EDIT>i)EDIT--;save2();drawPhotos()})])]);
   box.append(row);
   if(sel){const z=el('input',{type:'range',min:'1',max:'3',step:'0.01',value:String(ph.z)});z.setAttribute('aria-label','Scale for photo '+(i+1));
    const zv=el('span',{className:'zv',textContent:Math.round(ph.z*100)+'%'});
    z.oninput=()=>{ph.z=parseFloat(z.value);zv.textContent=Math.round(ph.z*100)+'%';save2()};
-   box.append(el('div',{className:'pedit'},[el('p',{className:'hint',textContent:'Drag the preview to reposition the photo. Use the mouse wheel or scale slider to zoom. You can also use the arrow keys on the preview.'}),
+   box.append(el('div',{className:'pedit'},[el('p',{className:'hint',textContent:'Use the direction buttons or drag the preview to reposition the photo. Increase Scale for more room to move. Arrow keys also work on the preview.'}),
     el('div',{className:'zrow'},[el('label',{textContent:'Scale'}),z,zv]),
+    el('div',{className:'position-controls',role:'group',ariaLabel:'Photo position'},[['↑','Up',0,-1],['←','Left',-1,0],['↓','Down',0,1],['→','Right',1,0]].map(([arrow,label,dx,dy])=>el('button',{type:'button',textContent:arrow+' '+label,title:'Move photo '+label.toLowerCase(),onclick:()=>movePhoto(dx*20,dy*20)}))),
     el('div',{style:'display:flex;gap:8px'},[el('button',{textContent:'Center',onclick:()=>{ph.x=.5;ph.y=.5;ph.z=1;save2();drawPhotos()}}),el('button',{textContent:'Done',onclick:()=>setEdit(-1)})])]))}
  });
  const n=S2.photos.length;$('m_count').textContent=n+' of 10'+(n?', '+(n*S2.dur).toFixed(1)+' s loop':'');
@@ -153,8 +154,9 @@ pv2.addEventListener('pointerdown',e=>{if(!S2.photos.length)return;if(EDIT<0){se
 pv2.addEventListener('pointermove',e=>{if(!drag||EDIT<0||!GEO)return;const r=pv2.getBoundingClientRect(),k=pv2.width/r.width;nudge((e.clientX-drag.x)*k,(e.clientY-drag.y)*k);drag={x:e.clientX,y:e.clientY}});
 const endDrag=()=>{if(drag){drag=null;save2()}};pv2.addEventListener('pointerup',endDrag);pv2.addEventListener('pointercancel',endDrag);
 function nudge(dx,dy){const ph=S2.photos[EDIT],g=GEO;if(!ph||!g)return;if(g.cw>g.sw+.5)ph.x=clamp(ph.x-(dx/g.s)/(g.cw-g.sw));if(g.ch>g.sh+.5)ph.y=clamp(ph.y-(dy/g.s)/(g.ch-g.sh))}
+function movePhoto(dx,dy){if(EDIT<0)return;render2(p2ctx,pv2.width,pv2.height,paused2,false,EDIT);nudge(dx,dy);save2()}
 pv2.addEventListener('wheel',e=>{if(EDIT<0)return;e.preventDefault();const ph=S2.photos[EDIT];ph.z=Math.max(1,Math.min(3,ph.z*Math.exp(-e.deltaY*.0015)));save2();const z=$('m_photos').querySelector('.pedit input[type=range]');if(z){z.value=ph.z;z.nextSibling.textContent=Math.round(ph.z*100)+'%'}},{passive:false});
-pv2.addEventListener('keydown',e=>{if(EDIT<0)return;const st=e.shiftKey?40:10,m={ArrowLeft:[st,0],ArrowRight:[-st,0],ArrowUp:[0,st],ArrowDown:[0,-st]}[e.key];if(m){e.preventDefault();nudge(m[0],m[1]);save2()}if(e.key==='Escape')setEdit(-1)});
+pv2.addEventListener('keydown',e=>{if(EDIT<0)return;const st=e.shiftKey?40:10,m={ArrowLeft:[-st,0],ArrowRight:[st,0],ArrowUp:[0,-st],ArrowDown:[0,st]}[e.key];if(m){e.preventDefault();movePhoto(m[0],m[1])}if(e.key==='Escape')setEdit(-1)});
 function mv2(i,d){const j=i+d;if(j<0||j>=S2.photos.length)return;[S2.photos[i],S2.photos[j]]=[S2.photos[j],S2.photos[i]];if(EDIT===i)EDIT=j;else if(EDIT===j)EDIT=i;save2();drawPhotos()}
 $('m_add').onchange=async e=>{const files=[...e.target.files];e.target.value='';const room=10-S2.photos.length,use=files.slice(0,room);$('m_msg').textContent=use.length?'Loading '+use.length+(use.length===1?' photo':' photos'):'';
  let bad=0;for(const f of use){try{S2.photos.push({src:await loadPhoto(f),x:.5,y:.5,z:1})}catch(err){bad++}}

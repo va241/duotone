@@ -61,3 +61,6 @@
 #maskWorkspace canvas#pv2.editing{outline:2px solid var(--accent)}
 #maskWorkspace .bar{gap:8px}
 @media(max-width:860px){#maskWorkspace .stage{grid-row:1}#maskWorkspace .frame{position:static}#maskWorkspace canvas#pv2{max-height:50vh}.tool-nav{max-width:none}}
+
+#maskWorkspace .position-controls{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+#maskWorkspace .position-controls button{min-height:36px;padding:6px 4px}
