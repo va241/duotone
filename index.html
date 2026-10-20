@@ -85,11 +85,30 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 <div class="wrap">
   <header>
     <h1>Duotone <span>· Public Design Unit</span></h1>
-    <p class="sub">Upload your photos, pick two colors and download.</p>
+    <p class="sub">Turn your images into duotones and soft, atmospheric backgrounds.</p>
   </header>
 
   <div class="main">
     <aside class="panel" aria-label="Settings">
+      <div class="group">
+        <div class="label">Tool</div>
+        <div class="seg" role="group" aria-label="Tool">
+          <button id="modeDuotone" aria-pressed="true">Duotone</button>
+          <button id="modeBackground" aria-pressed="false">Backgrounds</button>
+        </div>
+      </div>
+      <div class="group" id="backgroundControls" hidden>
+        <div class="label">Blur <button class="linkbtn" id="resetBlur">Reset</button></div>
+        <div class="seg" role="group" aria-label="Blur type">
+          <button id="blurGaussian" aria-pressed="true">Gaussian</button>
+          <button id="blurMotion" aria-pressed="false">Motion</button>
+        </div>
+        <div class="slider"><div class="row"><label for="blurAmount">Intensity</label><output id="blurAmountO"></output></div><input type="range" id="blurAmount" min="0" max="15" step="0.1" value="4"></div>
+        <div class="slider" id="angleControl" hidden><div class="row"><label for="blurAngle">Angle</label><output id="blurAngleO"></output></div><input type="range" id="blurAngle" min="0" max="180" step="1" value="0"></div>
+        <label><input type="checkbox" id="backgroundDuotone"> Apply duotone palette</label>
+        <p class="hint" style="margin:0">Intensity is relative to the image size. Preview and export keep the same blur proportions.</p>
+      </div>
+      <div id="colorControls" class="group">
       <div class="group">
         <div class="label">Gradient map</div>
         <div class="ramp" id="ramp"></div>
@@ -117,6 +136,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
         <div class="slider"><div class="row"><label for="gamma">Gamma</label><output id="gammaO"></output></div><input type="range" id="gamma" min="0.5" max="2" step="0.01" value="1.04"></div>
       </div>
 
+      </div>
       <div class="group">
         <div class="label">Export</div>
         <div class="seg" role="group" aria-label="Format">
@@ -158,6 +178,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
   </div>
 </div>
 
+<script src="blur.js"></script>
 <script>
 const DEFAULTS={noise:5,black:18,white:255,gamma:1.04,c1:"#495A99",c2:"#F0ECDD"};
 const BUILTIN=[
@@ -171,12 +192,13 @@ const $=id=>document.getElementById(id);
 const cv=$("cv"),ctx=cv.getContext("2d",{willReadFrequently:true});
 let images=[]; // {name, file, w, h, thumb} — only the current image is kept decoded in memory
 let cur=-1, fmt="jpg", showOrig=false, pending=false;
+let toolMode="duotone", blurType="gaussian";
 let userPresets=[];
 try{userPresets=JSON.parse(localStorage.getItem("duotone.presets")||"[]")}catch(e){}
 
 const hexOk=h=>/^#[0-9a-f]{6}$/i.test(h);
 const hexRgb=h=>[1,3,5].map(i=>parseInt(h.substr(i,2),16));
-function params(){return{noise:+$("noise").value,black:+$("black").value,white:+$("white").value,gamma:+$("gamma").value,c1:hexRgb($("c1").value),c2:hexRgb($("c2").value)}}
+function params(){return{mode:toolMode,blurType,blurAmount:+$("blurAmount").value,blurAngle:+$("blurAngle").value,colorize:$("backgroundDuotone").checked,noise:+$("noise").value,black:+$("black").value,white:+$("white").value,gamma:+$("gamma").value,c1:hexRgb($("c1").value),c2:hexRgb($("c2").value)}}
 
 // ---- Processing (same order as the Photoshop action) ----
 function makeNoise(n){
@@ -220,12 +242,25 @@ async function render(){
   const tok=++renderToken;
   let d;try{d=await decode(it);}catch(e){setStatus("Couldn’t open this image.");return;}
   if(tok!==renderToken||images[cur]!==it)return;
-  const w=d.src.width,h=d.src.height;
+  const p=params();
+  // Keep interactive background previews bounded; exports use original dimensions.
+  let src=d.src;
+  if(p.mode==="backgrounds" && Math.max(src.width,src.height)>1200){
+    const scale=1200/Math.max(src.width,src.height);
+    const full=document.createElement("canvas");full.width=src.width;full.height=src.height;full.getContext("2d").putImageData(src,0,0);
+    const small=document.createElement("canvas");small.width=Math.round(src.width*scale);small.height=Math.round(src.height*scale);
+    const sx=small.getContext("2d");sx.drawImage(full,0,0,small.width,small.height);src=sx.getImageData(0,0,small.width,small.height);
+  }
+  const w=src.width,h=src.height;
   if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h;}
-  if(showOrig){ctx.putImageData(d.src,0,0);return;}
+  if(showOrig){ctx.putImageData(src,0,0);return;}
   if(!outBuf||outBuf.width!==w||outBuf.height!==h)outBuf=ctx.createImageData(w,h);
-  processInto(d.src,getNoise(w*h),outBuf,params());
-  ctx.putImageData(outBuf,0,0);
+  paintProcessed(ctx,src,outBuf,p);
+}
+function paintProcessed(x,src,out,p){
+  if(p.mode==="duotone"||p.colorize){processInto(src,getNoise(src.width*src.height),out,p);x.putImageData(out,0,0);}
+  else x.putImageData(src,0,0);
+  if(p.mode==="backgrounds") BackgroundBlur.apply(x,p.blurType,p.blurAmount,p.blurAngle);
 }
 function schedule(){if(!pending){pending=true;requestAnimationFrame(render);}}
 
@@ -269,6 +304,12 @@ function refreshStrip(){
 
 // ---- Controls ----
 function syncUI(){
+  const bg=toolMode==="backgrounds";
+  $("modeDuotone").setAttribute("aria-pressed",!bg);$("modeBackground").setAttribute("aria-pressed",bg);
+  $("backgroundControls").hidden=!bg;$("colorControls").hidden=bg&&!$("backgroundDuotone").checked;
+  $("blurGaussian").setAttribute("aria-pressed",blurType==="gaussian");$("blurMotion").setAttribute("aria-pressed",blurType==="motion");
+  $("angleControl").hidden=blurType!=="motion";
+  $("blurAmountO").textContent=$("blurAmount").value+" %";$("blurAngleO").textContent=$("blurAngle").value+"°";
   $("noiseO").textContent=$("noise").value+" %";
   $("blackO").textContent=$("black").value;
   $("whiteO").textContent=$("white").value;
@@ -277,6 +318,12 @@ function syncUI(){
   $("c1t").value=$("c1").value.toUpperCase();$("c2t").value=$("c2").value.toUpperCase();
   drawPresets();
 }
+$("modeDuotone").onclick=()=>{toolMode="duotone";syncUI();schedule();};
+$("modeBackground").onclick=()=>{toolMode="backgrounds";syncUI();schedule();};
+$("blurGaussian").onclick=()=>{blurType="gaussian";syncUI();schedule();};
+$("blurMotion").onclick=()=>{blurType="motion";syncUI();schedule();};
+["blurAmount","blurAngle","backgroundDuotone"].forEach(id=>$(id).addEventListener("input",()=>{syncUI();schedule();}));
+$("resetBlur").onclick=()=>{blurType="gaussian";$("blurAmount").value=4;$("blurAngle").value=0;$("backgroundDuotone").checked=false;syncUI();schedule();};
 function setColors(a,b){$("c1").value=a.toLowerCase();$("c2").value=b.toLowerCase();syncUI();schedule();}
 ["noise","black","white","gamma"].forEach(id=>$(id).addEventListener("input",()=>{
   if(+$("black").value>=+$("white").value-10){ if(id==="black")$("black").value=+$("white").value-11; else $("white").value=+$("black").value+11; }
@@ -333,14 +380,14 @@ document.addEventListener("paste",e=>{const f=[...(e.clipboardData?.files||[])];
 
 // ---- Export ----
 function setStatus(t){$("status").textContent=t;}
-async function exportBlob(it){
+async function exportBlob(it,p=params(),format=fmt){
   const d=await decode(it),w=d.src.width,h=d.src.height;
   const c=document.createElement("canvas");c.width=w;c.height=h;
   const x=c.getContext("2d");const o=x.createImageData(w,h);
-  processInto(d.src,getNoise(w*h),o,params());x.putImageData(o,0,0);
-  return new Promise(res=>c.toBlob(res,fmt==="png"?"image/png":"image/jpeg",0.95));
+  paintProcessed(x,d.src,o,p);
+  return new Promise(res=>c.toBlob(res,format==="png"?"image/png":"image/jpeg",0.95));
 }
-const fname=it=>`${it.name}_duotone.${fmt}`;
+const fname=(it,p=params(),format=fmt)=>`${it.name}_${p.mode==="backgrounds"?p.blurType+"_background":"duotone"}.${format}`;
 let downloads=null;
 (async()=>{try{downloads=await window.claude?.use?.("downloads");}catch(e){}})();
 async function offer(filename,blob){
@@ -352,16 +399,19 @@ async function offer(filename,blob){
     const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000);setStatus(`Downloaded: ${filename}`);
   }
 }
-$("dlOne").onclick=async()=>{const it=images[cur];if(!it)return;setStatus("Processing at full resolution…");const b=await exportBlob(it);await offer(fname(it),b);};
+$("dlOne").onclick=async()=>{const it=images[cur];if(!it)return;const p=params(),format=fmt;setStatus("Processing at full resolution…");try{const b=await exportBlob(it,p,format);if(!b)throw new Error();await offer(fname(it,p,format),b);}catch(e){setStatus("Couldn’t export this image. Try a smaller image.");}};
 $("dlAll").onclick=async()=>{
   if(!window.JSZip){setStatus("The ZIP library didn’t load. Download the images one at a time.");return;}
   if(loading)return;
+  const p=params(),format=fmt,batch=[...images];
+  try{
   const zip=new JSZip();
   const used=new Set();
-  for(let i=0;i<images.length;i++){setStatus(`Processing ${i+1} of ${images.length}…`);let n=fname(images[i]),j=2;while(used.has(n)){n=fname(images[i]).replace(/(\.\w+)$/,`_${j++}$1`);}used.add(n);zip.file(n,await exportBlob(images[i]),{compression:"STORE"});}
+  for(let i=0;i<batch.length;i++){setStatus(`Processing ${i+1} of ${batch.length}…`);let n=fname(batch[i],p,format),j=2;while(used.has(n)){n=fname(batch[i],p,format).replace(/(\.\w+)$/,`_${j++}$1`);}used.add(n);const blob=await exportBlob(batch[i],p,format);if(!blob)throw new Error();zip.file(n,blob,{compression:"STORE"});}
   setStatus("Compressing…");
   const blob=await zip.generateAsync({type:"blob",compression:"STORE"});
-  await offer(`duotone_${images.length}_images.zip`,blob);
+  await offer(`${p.mode}_${batch.length}_images.zip`,blob);
+  }catch(e){setStatus("Couldn’t export this batch. Try fewer or smaller images.");}
 };
 
 // ---- Start ----
