@@ -1,5 +1,5 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
-<title>Duotone PDU</title>
+<title>Design Tools x Public Design UNIT</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
@@ -84,19 +84,21 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 
 <div class="wrap">
   <header>
-    <h1>Duotone <span>· Public Design Unit</span></h1>
-    <p class="sub">Turn your images into duotones and soft, atmospheric backgrounds.</p>
+    <h1>Design Tools <span>x Public Design UNIT</span></h1>
+    <p class="sub">Duotones, atmospheric backgrounds and animated photo masks.</p>
   </header>
 
-  <div class="main">
-    <aside class="panel" aria-label="Settings">
-      <div class="group">
+      <nav class="tool-nav" aria-label="Design tools">
         <div class="label">Tool</div>
         <div class="seg" role="group" aria-label="Tool">
           <button id="modeDuotone" aria-pressed="true">Duotone</button>
           <button id="modeBackground" aria-pressed="false">Backgrounds</button>
+          <button id="modeMask" aria-pressed="false">Masks</button>
         </div>
-      </div>
+      </nav>
+  <div class="main" id="imageWorkspace">
+    <aside class="panel" aria-label="Settings">
+
       <div class="group" id="backgroundControls" hidden>
         <div class="label">Blur <button class="linkbtn" id="resetBlur">Reset</button></div>
         <div class="seg" role="group" aria-label="Blur type">
@@ -178,6 +180,55 @@ input[type=range]{width:100%;accent-color:var(--accent)}
   </div>
 </div>
 
+<link rel="stylesheet" href="mask.css">
+<div class="wrap mask-wrap" id="maskWorkspace" hidden><div class="main">
+<aside class="panel" aria-label="Mask settings">
+<section>
+<h2>Shape</h2>
+<div class="row"><label for="m_shape">Mask</label><select id="m_shape"><option value="ohio">Ohio (US-B-D-10)</option><option value="b11">Alabama (US-B-D-11)</option><option value="custom">Custom SVG</option></select></div>
+<div class="row"><span></span><div><label class="file"><span>Upload SVG</span><input type="file" id="m_svg" accept=".svg,image/svg+xml"></label></div></div>
+<p class="hint" id="m_svgmsg"></p>
+</section>
+<section>
+<h2>Photos <span id="m_count"></span></h2>
+<div id="m_photos"></div>
+<div id="m_empty" class="empty" hidden>No photos yet. Add up to 10.</div>
+<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><label class="file" id="m_addwrap"><span>Add photos</span><input type="file" id="m_add" accept="image/*" multiple></label></div>
+<p class="hint" id="m_msg" role="status"></p>
+<p class="hint" id="m_savewarn" hidden>These photos exceed browser storage limits. They remain available while this page is open.</p>
+</section>
+<section>
+<h2>Animation</h2>
+<div class="row"><label for="m_trans">Transition</label><select id="m_trans"><option value="wipe">Wipe</option><option value="slide">Slide</option><option value="fade">Fade</option><option value="cut">Cut</option></select></div>
+<div class="row"><label for="m_dur">Photo duration</label><div style="display:flex;gap:10px;align-items:center"><input type="range" id="m_dur" min="1" max="6" step="0.1"><span id="m_durv" style="min-width:42px;font-variant-numeric:tabular-nums"></span></div></div>
+<div class="row"><span></span><label class="check"><input type="checkbox" id="m_zoom"> Slow zoom on each photo</label></div>
+<div class="row"><label for="m_fmt">Aspect ratio</label><select id="m_fmt"><option value="shape">Fit to shape</option><option value="1:1">Square 1:1</option><option value="4:5">Portrait 4:5</option><option value="9:16">Story 9:16</option><option value="16:9">Landscape 16:9</option></select></div>
+</section>
+<section>
+<h2>Colors</h2>
+<div class="row"><span></span><label class="check"><input type="checkbox" id="m_duo"> Duotone photos</label></div>
+<div id="m_colors"></div>
+<div style="margin-top:10px"><button id="m_pal">Use Duotone palette</button></div>
+</section>
+</aside>
+<div class="stage">
+<div class="frame">
+<div class="canvasbox">
+<canvas id="pv2" width="1080" height="1080" tabindex="0" aria-label="Photo mask preview"></canvas></div>
+<div class="bar">
+<button id="play2">Pause</button>
+<select id="size2" aria-label="GIF width" style="width:auto"><option value="540">540 px</option><option value="720" selected>720 px</option><option value="1080">1080 px</option></select>
+<select id="fps2" aria-label="Frames per second" style="width:auto"><option value="10">10 fps</option><option value="15" selected>15 fps</option><option value="20">20 fps</option></select>
+<button id="export2" class="primary">Export GIF</button>
+</div>
+<div class="bar opts"><label class="check"><input type="checkbox" id="tr2"> Transparent background</label><label class="check"><input type="checkbox" id="dith2" checked> Dithering for smooth gradients</label>
+</div>
+<p class="hint" id="trh2" hidden>Edges blend with the background color. Match it to the slide where the GIF will appear to avoid a halo.</p>
+<div class="status" id="status2" role="status"></div>
+<div id="fallback2" hidden></div>
+</div>
+</div>
+</div></div>
 <script src="blur.js"></script>
 <script>
 const DEFAULTS={noise:5,black:18,white:255,gamma:1.04,c1:"#495A99",c2:"#F0ECDD"};
@@ -304,8 +355,10 @@ function refreshStrip(){
 
 // ---- Controls ----
 function syncUI(){
-  const bg=toolMode==="backgrounds";
-  $("modeDuotone").setAttribute("aria-pressed",!bg);$("modeBackground").setAttribute("aria-pressed",bg);
+  const bg=toolMode==="backgrounds", mask=toolMode==="masks";
+  $("imageWorkspace").hidden=mask;$("maskWorkspace").hidden=!mask;
+  $("modeMask").setAttribute("aria-pressed",mask);
+  $("modeDuotone").setAttribute("aria-pressed",!bg&&!mask);$("modeBackground").setAttribute("aria-pressed",bg);
   $("backgroundControls").hidden=!bg;$("colorControls").hidden=bg&&!$("backgroundDuotone").checked;
   $("blurGaussian").setAttribute("aria-pressed",blurType==="gaussian");$("blurMotion").setAttribute("aria-pressed",blurType==="motion");
   $("angleControl").hidden=blurType!=="motion";
@@ -319,6 +372,7 @@ function syncUI(){
   drawPresets();
 }
 $("modeDuotone").onclick=()=>{toolMode="duotone";syncUI();schedule();};
+$("modeMask").onclick=()=>{toolMode="masks";syncUI();};
 $("modeBackground").onclick=()=>{toolMode="backgrounds";syncUI();schedule();};
 $("blurGaussian").onclick=()=>{blurType="gaussian";syncUI();schedule();};
 $("blurMotion").onclick=()=>{blurType="motion";syncUI();schedule();};
@@ -376,7 +430,7 @@ const drop=$("drop");
 ["dragenter","dragover"].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.add("drag");}));
 ["dragleave","drop"].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.remove("drag");}));
 drop.addEventListener("drop",e=>addFiles(e.dataTransfer.files));
-document.addEventListener("paste",e=>{const f=[...(e.clipboardData?.files||[])];if(f.length)addFiles(f);});
+document.addEventListener("paste",e=>{if(toolMode==="masks")return;const f=[...(e.clipboardData?.files||[])];if(f.length)addFiles(f);});
 
 // ---- Export ----
 function setStatus(t){$("status").textContent=t;}
@@ -419,4 +473,5 @@ syncUI();
 refreshStrip();
 </script>
 
+<script src="mask.js"></script>
 </body></html>
