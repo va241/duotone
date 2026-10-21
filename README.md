@@ -14,7 +14,7 @@ El gaussiano usa una aproximación de tres filtros de caja; el movimiento acumul
 
 ## Masks
 
-La pestaña **Masks** integra fotos animadas en Ohio, Alabama o un SVG propio. Permite hasta 10 fotos, encuadre y zoom, cuatro transiciones, proporciones, duotono y exportación GIF con fondo transparente. **Use Duotone palette** copia los colores seleccionados en la herramienta Duotone. Los ajustes y fotos se guardan localmente cuando hay espacio disponible. Mantén `mask.js` y `mask.css` junto a `index.html`.
+La pestaña **Masks** integra fotos animadas en Circle, Square, Ohio, Alabama o un SVG propio. Permite hasta 10 fotos, encuadre y zoom, cuatro transiciones, proporciones, duotono y exportación GIF con fondo transparente. **Use Duotone palette** copia los colores seleccionados en la herramienta Duotone. Los ajustes y fotos se guardan localmente cuando hay espacio disponible. Mantén `mask.js` y `mask.css` junto a `index.html`.
 
 Masks starts without demo photos. Previously saved demo images are removed automatically; uploaded photos are preserved. All module controls and messages are in English.
 
