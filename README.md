@@ -14,7 +14,7 @@ El gaussiano usa una aproximación de tres filtros de caja; el movimiento acumul
 
 ## Masks
 
-La pestaña **Masks** integra fotos animadas en Circle, Square, Rectangle (16:9), Ohio, Alabama o un SVG propio. Permite hasta 10 fotos, encuadre y zoom, cuatro transiciones, proporciones, duotono y exportación GIF con fondo transparente. **Use Duotone palette** copia los colores seleccionados en la herramienta Duotone. Los ajustes y fotos se guardan localmente cuando hay espacio disponible. Mantén `mask.js` y `mask.css` junto a `index.html`.
+La pestaña **Masks** integra fotos animadas en Circle, Square, Rectangle (16:9), Ohio, Alabama o un SVG propio. **None (free)** muestra imágenes completas sin máscara, conservando sus proporciones y transparencia. **Fit to first photo** toma la proporción de la primera imagen; también se puede elegir una proporción fija. El zoom permite ampliar manualmente las imágenes. Permite hasta 10 fotos, encuadre y zoom, cuatro transiciones, proporciones, duotono y exportación GIF con fondo transparente. **Use Duotone palette** copia los colores seleccionados en la herramienta Duotone. Los ajustes y fotos se guardan localmente cuando hay espacio disponible. Mantén `mask.js` y `mask.css` junto a `index.html`.
 
 Masks starts without demo photos. Previously saved demo images are removed automatically; uploaded photos are preserved. All module controls and messages are in English.
 

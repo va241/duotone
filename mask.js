@@ -31,7 +31,7 @@ function duotone(src,dark,light){const o=getImg(src);if(!o.ready)return null;con
  for(let i=0;i<a.length;i+=16){const l=.299*a[i]+.587*a[i+1]+.114*a[i+2];if(l<mn)mn=l;if(l>mx)mx=l}const rg=Math.max(1,mx-mn);
  for(let i=0;i<a.length;i+=4){let f=clamp((.299*a[i]+.587*a[i+1]+.114*a[i+2]-mn)/rg);f=f*f*(3-2*f);a[i]=A[0]+(B[0]-A[0])*f;a[i+1]=A[1]+(B[1]-A[1])*f;a[i+2]=A[2]+(B[2]-A[2])*f}
  x.putImageData(d,0,0);o.duo[k]=c;return c}
-function loadPhoto(file){return new Promise((res,rej)=>{const fr=new FileReader();fr.onerror=rej;fr.onload=()=>{const im=new Image();im.onerror=()=>rej(new Error('Could not read the image'));im.onload=()=>{const m=1400/Math.max(im.width,im.height),sc=Math.min(1,m),c=document.createElement('canvas');c.width=Math.round(im.width*sc);c.height=Math.round(im.height*sc);c.getContext('2d').drawImage(im,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.86))};im.src=fr.result};fr.readAsDataURL(file)})}
+function loadPhoto(file){return new Promise((res,rej)=>{const fr=new FileReader();fr.onerror=rej;fr.onload=()=>{const im=new Image();im.onerror=()=>rej(new Error('Could not read the image'));im.onload=()=>{const m=1400/Math.max(im.width,im.height),sc=Math.min(1,m),c=document.createElement('canvas');c.width=Math.round(im.width*sc);c.height=Math.round(im.height*sc);c.getContext('2d').drawImage(im,0,0,c.width,c.height);res(c.toDataURL('image/png'))};im.src=fr.result};fr.readAsDataURL(file)})}
 const BAYER=[0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5];
 function makeQuant(pal,matte,transp,dith){const lut=new Int16Array(1<<18).fill(-1),M=hex(matte),T=transp?pal.length:-1;
  const near=(r,g,b)=>{const k=(r>>2)<<12|(g>>2)<<6|(b>>2);let v=lut[k];if(v>=0)return v;let best=0,bd=1e9;for(let i=0;i<pal.length;i++){const p=pal[i],d=(p[0]-r)**2*2+(p[1]-g)**2*4+(p[2]-b)**2*3;if(d<bd){bd=d;best=i}}lut[k]=best;return best};
@@ -104,29 +104,30 @@ function parseSvg(text){
 
 function photoSrc(src){if(S2.duo)return duotone(src,S2.dark,S2.light);const o=getImg(src);return o.ready?o.img:null}
 function coverAt(ctx,c,x,y,w,h,z,fx,fy){const cw=c.width||c.naturalWidth,ch=c.height||c.naturalHeight,s=Math.max(w/cw,h/ch)*z,sw=w/s,sh=h/s;ctx.drawImage(c,(cw-sw)*fx,(ch-sh)*fy,sw,sh,x,y,w,h);return{s,cw,ch,sw,sh}}
-function frameSize2(W){const sh=shapeOf(),bb=shapeBox(sh).bb;if(S2.fmt==='shape'){const pad=.05;return[W,Math.round(W*(bb.h*(1+2*pad))/(bb.w*(1+2*pad))/2)*2]}return[W,Math.round(W*RATIO2[S2.fmt]/2)*2]}
+function fitAt(ctx,c,x,y,w,h,z,fx,fy){const cw=c.width||c.naturalWidth,ch=c.height||c.naturalHeight,s=Math.min(w/cw,h/ch)*z,dw=cw*s,dh=ch*s;ctx.drawImage(c,x+(w-dw)*fx,y+(h-dh)*fy,dw,dh);return{s,cw,ch,sw:w/s,sh:h/s,free:true}}
+function frameSize2(W){if(S2.shape==='none'){const first=S2.photos[0],im=first&&getImg(first.src),ratio=S2.fmt==='shape'?(im&&im.ready?im.img.naturalHeight/im.img.naturalWidth:1):RATIO2[S2.fmt];return[W,Math.max(2,Math.round(W*ratio/2)*2)]}const sh=shapeOf(),bb=shapeBox(sh).bb;if(S2.fmt==='shape'){const pad=.05;return[W,Math.round(W*(bb.h*(1+2*pad))/(bb.w*(1+2*pad))/2)*2]}return[W,Math.round(W*RATIO2[S2.fmt]/2)*2]}
 const RATIO2={'1:1':1,'4:5':1.25,'9:16':16/9,'16:9':9/16};
 const OFF={};
 function render2(ctx,W,H,T,noBg,edit){
  ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';if(noBg)ctx.clearRect(0,0,W,H);else{ctx.fillStyle=S2.bg;ctx.fillRect(0,0,W,H)}
- const sh=shapeOf(),info=shapeBox(sh);if(info.empty)return;const bb=info.bb;
- const pad=S2.fmt==='shape'?.05*Math.min(W/(1.1),W):.07*Math.min(W,H),s=Math.min((W-2*pad)/bb.w,(H-2*pad)/bb.h),sw=Math.max(2,Math.round(bb.w*s)),shh=Math.max(2,Math.round(bb.h*s));
+ const free=S2.shape==='none',sh=shapeOf(),info=free?{bb:{w:W,h:H}}:shapeBox(sh);if(info.empty)return;const bb=info.bb,drawPhoto=free?fitAt:coverAt;
+ const pad=free?0:S2.fmt==='shape'?.05*Math.min(W/(1.1),W):.07*Math.min(W,H),s=Math.min((W-2*pad)/bb.w,(H-2*pad)/bb.h),sw=Math.max(2,Math.round(bb.w*s)),shh=Math.max(2,Math.round(bb.h*s));
  const ox=Math.round((W-sw)/2),oy=Math.round((H-shh)/2),key=sw+'x'+shh;
  let off=OFF[key];if(!off){off=OFF[key]=document.createElement('canvas');off.width=sw;off.height=shh}const o=off.getContext('2d');
  o.globalCompositeOperation='source-over';o.globalAlpha=1;o.clearRect(0,0,sw,shh);
  const P=S2.photos,n=P.length,D=S2.dur;
  if(!n){o.fillStyle=S2.light;o.fillRect(0,0,sw,shh)}else if(edit>=0&&edit<n){const ph=P[edit],c=photoSrc(ph.src);
-  if(c){const g=coverAt(o,c,0,0,sw,shh,ph.z,ph.x,ph.y);GEO=Object.assign(g,{scale:sw/(W),ox,oy,w:sw,h:shh})}else{o.fillStyle=S2.light;o.fillRect(0,0,sw,shh)}}else{
+  if(c){const g=drawPhoto(o,c,0,0,sw,shh,ph.z,ph.x,ph.y);GEO=Object.assign(g,{scale:sw/(W),ox,oy,w:sw,h:shh})}else{o.fillStyle=S2.light;o.fillRect(0,0,sw,shh)}}else{
   const k=((Math.floor(T/D)%n)+n)%n,t=T-Math.floor(T/D)*D,tr=Math.min(.75,D*.32),p=n>1&&S2.trans!=='cut'?eIO(clamp(t/tr)):1;
   const zc=S2.zoom?1.07-.07*clamp(t/D):1;
   CURK=k;const pc=P[k],pp=P[(k-1+n)%n],cur=photoSrc(pc.src),prv=n>1?photoSrc(pp.src):null;
-  const draw=(c,x,z)=>{const ph=c===cur?pc:pp;if(c)coverAt(o,c,x,0,sw,shh,z*ph.z,ph.x,ph.y);else{o.fillStyle=S2.light;o.fillRect(x,0,sw,shh)}};
+  const draw=(c,x,z)=>{const ph=c===cur?pc:pp;if(c)drawPhoto(o,c,x,0,sw,shh,z*ph.z,ph.x,ph.y);else{o.fillStyle=S2.light;o.fillRect(x,0,sw,shh)}};
   if(p>=1)draw(cur,0,zc);
   else if(S2.trans==='fade'){draw(prv,0,1);o.globalAlpha=p;draw(cur,0,zc);o.globalAlpha=1}
   else if(S2.trans==='slide'){draw(prv,-sw*p,1);draw(cur,sw*(1-p),zc)}
   else{draw(prv,0,1);o.save();o.beginPath();o.rect(0,0,sw,shh*p);o.clip();draw(cur,0,zc);o.restore()}
  }
- o.globalCompositeOperation='destination-in';o.drawImage(maskCanvas(sh,bb,sw,shh),0,0);o.globalCompositeOperation='source-over';
+ if(!free){o.globalCompositeOperation='destination-in';o.drawImage(maskCanvas(sh,bb,sw,shh),0,0);o.globalCompositeOperation='source-over'}
  ctx.drawImage(off,ox,oy);
 }
 
@@ -157,7 +158,7 @@ let drag=null;
 pv2.addEventListener('pointerdown',e=>{if(!S2.photos.length)return;if(EDIT<0){setEdit(CURK)}drag={x:e.clientX,y:e.clientY};pv2.setPointerCapture(e.pointerId)});
 pv2.addEventListener('pointermove',e=>{if(!drag||EDIT<0||!GEO)return;const r=pv2.getBoundingClientRect(),k=pv2.width/r.width;nudge((e.clientX-drag.x)*k,(e.clientY-drag.y)*k);drag={x:e.clientX,y:e.clientY}});
 const endDrag=()=>{if(drag){drag=null;save2()}};pv2.addEventListener('pointerup',endDrag);pv2.addEventListener('pointercancel',endDrag);
-function nudge(dx,dy){const ph=S2.photos[EDIT],g=GEO;if(!ph||!g)return;if(g.cw>g.sw+.5)ph.x=clamp(ph.x-(dx/g.s)/(g.cw-g.sw));if(g.ch>g.sh+.5)ph.y=clamp(ph.y-(dy/g.s)/(g.ch-g.sh))}
+function nudge(dx,dy){const ph=S2.photos[EDIT],g=GEO;if(!ph||!g)return;if(g.free){if(Math.abs(g.sw-g.cw)>.5)ph.x=clamp(ph.x+dx/g.s/(g.sw-g.cw));if(Math.abs(g.sh-g.ch)>.5)ph.y=clamp(ph.y+dy/g.s/(g.sh-g.ch));return}if(g.cw>g.sw+.5)ph.x=clamp(ph.x-(dx/g.s)/(g.cw-g.sw));if(g.ch>g.sh+.5)ph.y=clamp(ph.y-(dy/g.s)/(g.ch-g.sh))}
 function movePhoto(dx,dy){if(EDIT<0)return;render2(p2ctx,pv2.width,pv2.height,paused2,false,EDIT);nudge(dx,dy);save2()}
 pv2.addEventListener('wheel',e=>{if(EDIT<0)return;e.preventDefault();const ph=S2.photos[EDIT];ph.z=Math.max(1,Math.min(3,ph.z*Math.exp(-e.deltaY*.0015)));save2();const z=$('m_photos').querySelector('.pedit input[type=range]');if(z){z.value=ph.z;z.nextSibling.textContent=Math.round(ph.z*100)+'%'}},{passive:false});
 pv2.addEventListener('keydown',e=>{if(EDIT<0)return;const st=e.shiftKey?40:10,m={ArrowLeft:[-st,0],ArrowRight:[st,0],ArrowUp:[0,-st],ArrowDown:[0,st]}[e.key];if(m){e.preventDefault();movePhoto(m[0],m[1])}if(e.key==='Escape')setEdit(-1)});
@@ -167,7 +168,7 @@ $('m_add').onchange=async e=>{const files=[...e.target.files];e.target.value='';
  save2();drawPhotos();const notes=[];if(files.length>room)notes.push('Maximum 10 photos; skipped '+(files.length-room)+'.');if(bad)notes.push(bad+(bad===1?' file could not be read.':' files could not be read.'));$('m_msg').textContent=notes.join(' ')};
 $('m_shape').value=S2.shape==='custom'&&!S2.custom?'ohio':S2.shape;
 $('m_shape').onchange=()=>{const v=$('m_shape').value;if(v==='custom'&&!S2.custom){$('m_svg').click();$('m_shape').value=S2.shape;return}S2.shape=v;save2();svgMsg()};
-function svgMsg(){$('m_svgmsg').textContent=S2.shape==='custom'&&S2.custom?'Using your SVG ('+S2.custom.els.length+(S2.custom.els.length===1?' shape).':' shapes).'):'Upload an SVG to use its shape as a mask. Cutouts are preserved.'}
+function svgMsg(){$('m_fmt').querySelector('[value="shape"]').textContent=S2.shape==='none'?'Fit to first photo':'Fit to shape';$('m_svgmsg').textContent=S2.shape==='none'?'No mask: images keep their proportions and fit inside the canvas. Fit to first photo uses the first image’s aspect ratio.':S2.shape==='custom'&&S2.custom?'Using your SVG ('+S2.custom.els.length+(S2.custom.els.length===1?' shape).':' shapes).'):'Upload an SVG to use its shape as a mask. Cutouts are preserved.'}
 $('m_svg').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{const sh=parseSvg(await f.text());S2.custom=sh;S2.shape='custom';$('m_shape').value='custom';save2();svgMsg()}catch(err){$('m_svgmsg').textContent=err.message||'Could not read this SVG.'}};
 ['trans','fmt'].forEach(k=>{const e=$('m_'+k);e.value=S2[k];e.onchange=()=>{S2[k]=e.value;save2()}});
 $('m_dur').value=S2.dur;const durTxt=()=>$('m_durv').textContent=S2.dur.toFixed(1)+' s';durTxt();
@@ -205,10 +206,10 @@ async function exportGif2(){
   const fixed=[S2.bg,S2.dark,S2.light].map(hex),pal=fixed.concat(medianCut(samp,252)).slice(0,255);
   const Q=makeQuant(pal,S2.bg,transp,$('dith2').checked),gw=GifWriter(W,H,Q.full);let prev=null;
   for(let f=0;f<total;f++){render2(ctx,W,H,f/fps,transp);const idx=Q.run(ctx.getImageData(0,0,W,H).data,W,H);
-   if(!prev)gw.frame(idx,0,0,W,H,delay,1,Q.T);else{let x0=W,y0=H,x1=-1,y1=-1;for(let y=0;y<H;y++){const o=y*W;for(let x=0;x<W;x++)if(idx[o+x]!==prev[o+x]){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;y1=y}}
+   if(transp)gw.frame(idx,0,0,W,H,delay,2,Q.T);else if(!prev)gw.frame(idx,0,0,W,H,delay,1,Q.T);else{let x0=W,y0=H,x1=-1,y1=-1;for(let y=0;y<H;y++){const o=y*W;for(let x=0;x<W;x++)if(idx[o+x]!==prev[o+x]){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;y1=y}}
     if(x1<0){x0=0;y0=0;x1=0;y1=0}const fw=x1-x0+1,fh=y1-y0+1,sub=new Uint8Array(fw*fh);for(let y=0;y<fh;y++)sub.set(idx.subarray((y+y0)*W+x0,(y+y0)*W+x0+fw),y*fw);gw.frame(sub,x0,y0,fw,fh,delay,1,Q.T)}
    prev=idx;if(f%2===0){$('status2').textContent='Generating GIF, frame '+(f+1)+' of '+total;await new Promise(r=>setTimeout(r,0))}}
-  const bytes=gw.end(),blob=new Blob([bytes],{type:'image/gif'}),mb=(bytes.length/1048576).toFixed(1),name='public-mask-'+n+'-photos.gif';
+  const bytes=gw.end(),blob=new Blob([bytes],{type:'image/gif'}),mb=(bytes.length/1048576).toFixed(1),name=(S2.shape==='none'?'public-free-':'public-mask-')+n+'-photos.gif';
   const url=URL.createObjectURL(blob),a=el('a',{href:url,download:name});document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
   $('status2').textContent='GIF downloaded ('+mb+' MB): '+name;
  }catch(e){$('status2').textContent='Could not generate the GIF: '+(e&&e.message||e)}finally{controls.forEach(([e,disabled])=>e.disabled=disabled);btn.disabled=!S2.photos.length}}
