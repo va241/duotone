@@ -193,7 +193,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 <section>
 <h2>Photos <span id="m_count"></span></h2>
 <div id="m_photos"></div>
-<div id="m_empty" class="empty" hidden>No photos yet. Add up to 10.</div>
+<div id="m_empty" class="empty" hidden>No photos yet. Add up to 50.</div>
 <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><label class="file" id="m_addwrap"><span>Add photos</span><input type="file" id="m_add" accept="image/*" multiple></label></div>
 <p class="hint" id="m_msg" role="status"></p>
 <p class="hint" id="m_savewarn" hidden>These photos exceed browser storage limits. They remain available while this page is open.</p>
@@ -201,7 +201,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 <section>
 <h2>Animation</h2>
 <div class="row"><label for="m_trans">Transition</label><select id="m_trans"><option value="wipe">Wipe</option><option value="slide">Slide</option><option value="fade">Fade</option><option value="cut">Cut</option></select></div>
-<div class="row"><label for="m_dur">Photo duration</label><div style="display:flex;gap:10px;align-items:center"><input type="range" id="m_dur" min="1" max="6" step="0.1"><span id="m_durv" style="min-width:42px;font-variant-numeric:tabular-nums"></span></div></div>
+<div class="row"><label for="m_dur">Photo duration</label><div style="display:flex;gap:10px;align-items:center"><input type="range" id="m_dur" min="0.5" max="6" step="0.1"><span id="m_durv" style="min-width:42px;font-variant-numeric:tabular-nums"></span></div></div>
 <div class="row"><span></span><label class="check"><input type="checkbox" id="m_zoom"> Slow zoom on each photo</label></div>
 <div class="row"><label for="m_fmt">Aspect ratio</label><select id="m_fmt"><option value="shape">Fit to shape</option><option value="1:1">Square 1:1</option><option value="4:5">Portrait 4:5</option><option value="9:16">Story 9:16</option><option value="16:9">Landscape 16:9</option></select></div>
 </section>

@@ -47,6 +47,7 @@ const SHAPES={
  ohio:{name:'Ohio',vb:[0,0,1126.69,1184.4],els:[{d:'M1034.6,54.51l-262.12,160.72-283.17,20.41-102.04-99.49H63.27v801.05l127.56,25.51,22.96,81.64,117.35,43.37,176.03-35.72,91.84,104.6,73.98-35.72,48.47-178.58,56.12,48.47,76.53-153.07,130.11-107.15,68.88-265.32-18.5-410.73ZM283.85,778.63c-24.27,0-43.95-19.68-43.95-43.95s19.68-43.95,43.95-43.95,43.95,19.68,43.95,43.95-19.68,43.95-43.95,43.95Z',m:[1,0,0,1,0,0],r:'nonzero'}]},
  b11:{name:'US-B-D-11',vb:[0,0,797.59,1201.47],els:[{d:'M758.31,984.83l-32.39-217.55,45.04-93.04-127.74-593.74-471.25-13.76L58.78,783.26l18.67,342.85,62.17,9.82,15.91-100.68,57.82,133.57,81.19-72.16-57.02-100.04,520.8-11.79ZM426.15,373.95c24.12,3.81,40.59,26.46,36.78,50.57-3.81,24.12-26.46,40.59-50.58,36.78-24.12-3.81-40.57-26.46-36.76-50.58,3.81-24.1,26.44-40.58,50.56-36.77Z',m:[1,0,0,1,0,0],r:'nonzero'}]}};
 const DEF2={shape:'ohio',custom:null,photos:[],dur:2.5,trans:'wipe',zoom:false,fmt:'shape',duo:true,bg:'#f5f3ef',dark:'#416855',light:'#e6e8e1'};
+const MAX_PHOTOS=50;
 const KEY2='mascara-fotos-v1';
 let S2;try{S2=JSON.parse(localStorage.getItem(KEY2)||'null')}catch(e){S2=null}
 S2=Object.assign({},JSON.parse(JSON.stringify(DEF2)),S2||{});
@@ -150,8 +151,8 @@ function drawPhotos(){const box=$('m_photos');box.textContent='';
     el('div',{className:'position-controls',role:'group',ariaLabel:'Photo position'},[['↑','Up',0,-1],['←','Left',-1,0],['↓','Down',0,1],['→','Right',1,0]].map(([arrow,label,dx,dy])=>el('button',{type:'button',textContent:arrow+' '+label,title:'Move photo '+label.toLowerCase(),onclick:()=>movePhoto(dx*20,dy*20)}))),
     el('div',{style:'display:flex;gap:8px'},[el('button',{textContent:'Center',onclick:()=>{ph.x=.5;ph.y=.5;ph.z=1;save2();drawPhotos()}}),el('button',{textContent:'Done',onclick:()=>setEdit(-1)})])]))}
  });
- const n=S2.photos.length;$('m_count').textContent=n+' of 10'+(n?', '+(n*S2.dur).toFixed(1)+' s loop':'');
- $('m_addwrap').hidden=n>=10;$('export2').disabled=!n;$('m_empty').hidden=n>0;
+ const n=S2.photos.length;$('m_count').textContent=n+' of '+MAX_PHOTOS+(n?', '+(n*S2.dur).toFixed(1)+' s loop':'');
+ $('m_addwrap').hidden=n>=MAX_PHOTOS;$('export2').disabled=!n;$('m_empty').hidden=n>0;
  pv2.classList.toggle('editing',EDIT>=0);$('play2').disabled=!n||EDIT>=0}
 function setEdit(i){const was=EDIT;EDIT=i;if(i<0&&was>=0){paused2=was*S2.dur+.01;t02=performance.now()-paused2*1000}drawPhotos()}
 let drag=null;
@@ -163,9 +164,9 @@ function movePhoto(dx,dy){if(EDIT<0)return;render2(p2ctx,pv2.width,pv2.height,pa
 pv2.addEventListener('wheel',e=>{if(EDIT<0)return;e.preventDefault();const ph=S2.photos[EDIT];ph.z=Math.max(1,Math.min(3,ph.z*Math.exp(-e.deltaY*.0015)));save2();const z=$('m_photos').querySelector('.pedit input[type=range]');if(z){z.value=ph.z;z.nextSibling.textContent=Math.round(ph.z*100)+'%'}},{passive:false});
 pv2.addEventListener('keydown',e=>{if(EDIT<0)return;const st=e.shiftKey?40:10,m={ArrowLeft:[-st,0],ArrowRight:[st,0],ArrowUp:[0,-st],ArrowDown:[0,st]}[e.key];if(m){e.preventDefault();movePhoto(m[0],m[1])}if(e.key==='Escape')setEdit(-1)});
 function mv2(i,d){const j=i+d;if(j<0||j>=S2.photos.length)return;[S2.photos[i],S2.photos[j]]=[S2.photos[j],S2.photos[i]];if(EDIT===i)EDIT=j;else if(EDIT===j)EDIT=i;save2();drawPhotos()}
-$('m_add').onchange=async e=>{const files=[...e.target.files];e.target.value='';const room=10-S2.photos.length,use=files.slice(0,room);$('m_msg').textContent=use.length?'Loading '+use.length+(use.length===1?' photo':' photos'):'';
+$('m_add').onchange=async e=>{const files=[...e.target.files];e.target.value='';const room=Math.max(0,MAX_PHOTOS-S2.photos.length),use=files.slice(0,room);$('m_msg').textContent=use.length?'Loading '+use.length+(use.length===1?' photo':' photos'):'';
  let bad=0;for(const f of use){try{S2.photos.push({src:await loadPhoto(f),x:.5,y:.5,z:1})}catch(err){bad++}}
- save2();drawPhotos();const notes=[];if(files.length>room)notes.push('Maximum 10 photos; skipped '+(files.length-room)+'.');if(bad)notes.push(bad+(bad===1?' file could not be read.':' files could not be read.'));$('m_msg').textContent=notes.join(' ')};
+ save2();drawPhotos();const notes=[];if(files.length>room)notes.push('Maximum '+MAX_PHOTOS+' photos; skipped '+(files.length-room)+'.');if(bad)notes.push(bad+(bad===1?' file could not be read.':' files could not be read.'));$('m_msg').textContent=notes.join(' ')};
 $('m_shape').value=S2.shape==='custom'&&!S2.custom?'ohio':S2.shape;
 $('m_shape').onchange=()=>{const v=$('m_shape').value;if(v==='custom'&&!S2.custom){$('m_svg').click();$('m_shape').value=S2.shape;return}S2.shape=v;save2();svgMsg()};
 function svgMsg(){$('m_fmt').querySelector('[value="shape"]').textContent=S2.shape==='none'?'Fit to first photo':'Fit to shape';$('m_svgmsg').textContent=S2.shape==='none'?'No mask: images keep their proportions and fit inside the canvas. Fit to first photo uses the first image’s aspect ratio.':S2.shape==='custom'&&S2.custom?'Using your SVG ('+S2.custom.els.length+(S2.custom.els.length===1?' shape).':' shapes).'):'Upload an SVG to use its shape as a mask. Cutouts are preserved.'}
