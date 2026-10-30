@@ -10,15 +10,15 @@ emit(clear);let prefix=idx[0];
 for(let i=1;i<idx.length;i++){const c=idx[i];const key=(prefix<<8)|c;const v=dict.get(key);if(v!==undefined){prefix=v;continue}
 emit(prefix);bump();if(next<4096){dict.set(key,next++)}else{emit(clear);dict.clear();next=eoi+1;size=minSize+1}prefix=c}
 emit(prefix);bump();emit(eoi);if(nb>0)put(cur&255);if(sl){buf.b(sl);for(let i=0;i<sl;i++)buf.b(sub[i])}buf.b(0)}
-function GifWriter(w,h,pal){const B=ByteBuf();for(const c of 'GIF89a')B.b(c.charCodeAt(0));B.w16(w);B.w16(h);B.b(0xF7);B.b(0);B.b(0);
+function GifWriter(w,h,pal,transparent=false){const B=ByteBuf();for(const c of 'GIF89a')B.b(c.charCodeAt(0));B.w16(w);B.w16(h);B.b(0xF7);B.b(0);B.b(0);
 for(let i=0;i<256;i++){const p=pal[i]||[0,0,0];B.b(p[0]);B.b(p[1]);B.b(p[2])}
 B.b(0x21);B.b(0xFF);B.b(11);for(const c of 'NETSCAPE2.0')B.b(c.charCodeAt(0));B.b(3);B.b(1);B.w16(0);B.b(0);
-return{frame(idx,x,y,fw,fh,delay){B.b(0x21);B.b(0xF9);B.b(4);B.b(0x04);B.w16(delay);B.b(0);B.b(0);B.b(0x2C);B.w16(x);B.w16(y);B.w16(fw);B.w16(fh);B.b(0);lzw(idx,8,B)},end(){B.b(0x3B);return B.out()}}}
+return{frame(idx,x,y,fw,fh,delay){B.b(0x21);B.b(0xF9);B.b(4);B.b(transparent?0x09:0x04);B.w16(delay);B.b(0);B.b(0);B.b(0x2C);B.w16(x);B.w16(y);B.w16(fw);B.w16(fh);B.b(0);lzw(idx,8,B)},end(){B.b(0x3B);return B.out()}}}
 
 
 const $=id=>document.getElementById('dm_'+id);
 const RATIO={'1:1':1,'4:5':1.25,'9:16':16/9,'16:9':9/16,'5:1':1/5};
-const DEF={items:[],fmt:'1:1',dur:3,numStyle:'roll',bg:'#f0ecdd',map:'#cdd0db',ink:'#495a99',acc:'#495a99',dot:'#ffffff'};
+const DEF={items:[],fmt:'1:1',dur:3,numStyle:'roll',transparent:false,bg:'#f0ecdd',map:'#cdd0db',ink:'#495a99',acc:'#495a99',dot:'#ffffff'};
 const KEY='public-data-motion-v1';
 let S;try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
 S={...DEF,...S};if(!Array.isArray(S.items))S.items=[];
@@ -135,13 +135,13 @@ function sig(it){return it.visual||'number'}
 function render(ctx,W,H,T,S){
  const L=layout(S.fmt,W,H),u=W/1080,n=S.items.length,D=S.dur;
  ctx.textBaseline='alphabetic';ctx.textAlign='left';ctx.globalAlpha=1;
- ctx.fillStyle=S.bg;ctx.fillRect(0,0,W,H);
+ if(S.transparent)ctx.clearRect(0,0,W,H);else{ctx.fillStyle=S.bg;ctx.fillRect(0,0,W,H);}
  if(!n)return
  const k=Math.floor(T/D)%n,t=T-Math.floor(T/D)*D,it=S.items[k];
  if(it.visual==='rectangle'){drawRectangle(ctx,W,H,t,S,it);return}
  const TI=textInfo(ctx,L,it,u);
  const prev=S.items[(k-1+n)%n],wipe=n>1&&sig(prev)!==sig(it)&&prev.visual!=='rectangle'&&t<.6;
- if(wipe){drawVisual(ctx,L,S,prev,D,T,textInfo(ctx,L,prev,u),W,H);const p=eIO(t/.6);ctx.save();ctx.beginPath();ctx.rect(0,0,W,H*p);ctx.clip();ctx.fillStyle=S.bg;ctx.fillRect(0,0,W,H);drawVisual(ctx,L,S,it,t,T,TI,W,H);ctx.restore()}
+ if(wipe){drawVisual(ctx,L,S,prev,D,T,textInfo(ctx,L,prev,u),W,H);const p=eIO(t/.6);ctx.save();ctx.beginPath();ctx.rect(0,0,W,H*p);ctx.clip();if(S.transparent)ctx.clearRect(0,0,W,H);else{ctx.fillStyle=S.bg;ctx.fillRect(0,0,W,H);}drawVisual(ctx,L,S,it,t,T,TI,W,H);ctx.restore()}
  else drawVisual(ctx,L,S,it,t,T,TI,W,H);
  ctx.fillStyle=S.ink;const size=TI.size;setFont(ctx,600,size,-.045*size);
  const pn=parseNum(it.value),x=L.x0-size*.04;
@@ -203,6 +203,9 @@ $('play').onclick=()=>{if(playing){paused=time();playing=false}else{t0=performan
 $('restart').onclick=()=>{paused=0;t0=performance.now();playing=true;$('play').textContent='Pause'};
 for(const key of ['fmt','dur','numStyle']){const e=$(key);e.value=S[key];e.oninput=()=>{S[key]=key==='dur'?+e.value:e.value;$('durValue').textContent=S.dur.toFixed(1)+' s';paused=Math.min(selected,Math.max(0,S.items.length-1))*S.dur+S.dur*.6;t0=performance.now()-paused*1000;save()}}
 $('durValue').textContent=S.dur.toFixed(1)+' s';
+$('transparent').checked=!!S.transparent;
+pv.classList.toggle('dm-transparent',!!S.transparent);
+$('transparent').onchange=()=>{S.transparent=$('transparent').checked;pv.classList.toggle('dm-transparent',S.transparent);save()};
 function drawColors(){const box=$('colors');box.textContent='';for(const [key,label] of [['bg','Background'],['ink','Text / filled'],['map','Unfilled'],['acc','Source / note']]){const input=el('input',{type:'color',value:S[key]});input.setAttribute('aria-label',label);input.oninput=()=>{S[key]=input.value;save()};box.append(el('label',{className:'dm-color'},[el('span',{textContent:label}),input]))}}
 $('palette').onclick=()=>{S.ink=document.getElementById('c1').value;S.map=document.getElementById('c2').value;S.acc=S.ink;save();drawColors()};
 function buildPalette(){const base=[...new Set([S.bg,S.map,S.ink,S.acc,S.dot,'#ffffff'].map(x=>x.toLowerCase()))].map(hex);const pal=base.slice();
@@ -217,9 +220,9 @@ $('png').onclick=async()=>{await document.fonts.ready;const W=+$('size').value,H
 $('export').onclick=async()=>{
  if(exporting||!S.items.length)return;exporting=true;const controls=[...document.getElementById('dataWorkspace').querySelectorAll('button,input,select')].map(e=>[e,e.disabled]);controls.forEach(([e])=>e.disabled=true);
  try{
-  await document.fonts.ready;const W=+$('size').value,H=Math.round(W*RATIO[S.fmt]/2)*2,fps=+$('fps').value,total=Math.round(S.items.length*S.dur*fps),delay=Math.round(100/fps),c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d',{willReadFrequently:true}),pal=buildPalette(),lut=new Int16Array(1<<18).fill(-1),gif=GifWriter(W,H,pal);
-  function near(r,g,b){const key=(r>>2)<<12|(g>>2)<<6|(b>>2);if(lut[key]>=0)return lut[key];let best=0,dist=Infinity;pal.forEach((p,i)=>{const d=2*(p[0]-r)**2+4*(p[1]-g)**2+3*(p[2]-b)**2;if(d<dist){dist=d;best=i}});return lut[key]=best}
-  for(let f=0;f<total;f++){render(x,W,H,f/fps,S);const data=x.getImageData(0,0,W,H).data,idx=new Uint8Array(W*H);for(let i=0;i<idx.length;i++)idx[i]=near(data[i*4],data[i*4+1],data[i*4+2]);gif.frame(idx,0,0,W,H,delay);if(f%2===0){$('status').textContent='Generating GIF: '+(f+1)+' / '+total+' frames';await new Promise(r=>setTimeout(r,0))}}
+  await document.fonts.ready;const W=+$('size').value,H=Math.round(W*RATIO[S.fmt]/2)*2,fps=+$('fps').value,total=Math.round(S.items.length*S.dur*fps),delay=Math.round(100/fps),c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d',{willReadFrequently:true}),pal=S.transparent?[[0,0,0],...buildPalette().slice(0,255)]:buildPalette(),lut=new Int16Array(1<<18).fill(-1),gif=GifWriter(W,H,pal,S.transparent);
+  function near(r,g,b){const key=(r>>2)<<12|(g>>2)<<6|(b>>2);if(lut[key]>=0)return lut[key];let best=0,dist=Infinity;pal.forEach((p,i)=>{if(S.transparent&&i===0)return;const d=2*(p[0]-r)**2+4*(p[1]-g)**2+3*(p[2]-b)**2;if(d<dist){dist=d;best=i}});return lut[key]=best}
+  for(let f=0;f<total;f++){render(x,W,H,f/fps,S);const data=x.getImageData(0,0,W,H).data,idx=new Uint8Array(W*H);for(let i=0;i<idx.length;i++)idx[i]=S.transparent&&data[i*4+3]<128?0:near(data[i*4],data[i*4+1],data[i*4+2]);gif.frame(idx,0,0,W,H,delay);if(f%2===0){$('status').textContent='Generating GIF: '+(f+1)+' / '+total+' frames';await new Promise(r=>setTimeout(r,0))}}
   const blob=new Blob([gif.end()],{type:'image/gif'});download(blob,'public-data-motion.gif');$('status').textContent='GIF downloaded ('+(blob.size/1048576).toFixed(1)+' MB)';
  }catch(e){$('status').textContent='Could not export GIF: '+e.message}finally{exporting=false;controls.forEach(([e,disabled])=>e.disabled=disabled)}
 };

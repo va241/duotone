@@ -17,3 +17,7 @@
 #dataWorkspace .dm-blocks{display:grid;gap:10px}
 #dataWorkspace .dm-block{display:grid;grid-template-columns:minmax(60px,.6fr) minmax(0,1.4fr);gap:8px;padding:10px;border:1px solid var(--line);border-radius:6px}
 #dataWorkspace .dm-block .dm-actions{grid-column:1/-1}
+
+#dataWorkspace .dm-transparency{display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:12px}
+#dataWorkspace #dm_transparent{width:auto;flex:none}
+#dataWorkspace canvas.dm-transparent{background-color:#fff;background-image:conic-gradient(#ddd 25%,transparent 0 50%,#ddd 0 75%,transparent 0);background-size:20px 20px}
