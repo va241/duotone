@@ -245,8 +245,8 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 </aside>
 <section class="stage"><div class="toolbar"><span class="meta" id="dm_position"></span><div class="dm-actions"><button class="btn small" id="dm_play">Pause</button><button class="btn small" id="dm_restart">Restart</button></div></div>
 <div class="canvasbox"><canvas id="dm_preview" width="1080" height="1080" aria-label="Data Motion preview"></canvas></div>
-<div class="toolbar"><div class="dm-actions"><select id="dm_size" aria-label="Export width"><option value="540">540 px</option><option value="720" selected>720 px</option><option value="1080">1080 px</option></select><select id="dm_fps" aria-label="Export frame rate"><option value="10">10 fps</option><option value="15" selected>15 fps</option><option value="20">20 fps</option></select></div><div class="dm-actions"><button class="btn" id="dm_png">Export PNG</button><button class="btn primary" id="dm_export">Export GIF</button></div></div>
-<p class="hint">Use Preview on an item to inspect it. PNG exports that item; GIF exports the complete loop. Everything is processed in your browser.</p><div class="status" id="dm_status" role="status"></div>
+<div class="toolbar"><div class="dm-actions"><select id="dm_size" aria-label="Export width"><option value="1280">1280 px · HD</option><option value="1920" selected>1920 px · Full HD width</option><option value="2560">2560 px · High resolution</option></select><select id="dm_fps" aria-label="Export frame rate"><option value="10">10 fps</option><option value="15">15 fps</option><option value="20" selected>20 fps</option></select></div><div class="dm-actions"><button class="btn" id="dm_png">Export PNG</button><button class="btn primary" id="dm_export">Export GIF</button></div></div>
+<p class="hint">Use Preview on an item to inspect it. PNG exports that item; GIF exports the complete loop at 1920 px wide by default. Transparent GIFs have hard transparency edges; PNG preserves smooth transparency. Everything is processed in your browser.</p><div class="status" id="dm_status" role="status"></div>
 </section></div></div>
 
 <script src="blur.js"></script>

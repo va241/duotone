@@ -220,10 +220,10 @@ $('png').onclick=async()=>{await document.fonts.ready;const W=+$('size').value,H
 $('export').onclick=async()=>{
  if(exporting||!S.items.length)return;exporting=true;const controls=[...document.getElementById('dataWorkspace').querySelectorAll('button,input,select')].map(e=>[e,e.disabled]);controls.forEach(([e])=>e.disabled=true);
  try{
-  await document.fonts.ready;const W=+$('size').value,H=Math.round(W*RATIO[S.fmt]/2)*2,fps=+$('fps').value,total=Math.round(S.items.length*S.dur*fps),delay=Math.round(100/fps),c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d',{willReadFrequently:true}),pal=S.transparent?[[0,0,0],...buildPalette().slice(0,255)]:buildPalette(),lut=new Int16Array(1<<18).fill(-1),gif=GifWriter(W,H,pal,S.transparent);
-  function near(r,g,b){const key=(r>>2)<<12|(g>>2)<<6|(b>>2);if(lut[key]>=0)return lut[key];let best=0,dist=Infinity;pal.forEach((p,i)=>{if(S.transparent&&i===0)return;const d=2*(p[0]-r)**2+4*(p[1]-g)**2+3*(p[2]-b)**2;if(d<dist){dist=d;best=i}});return lut[key]=best}
+  await document.fonts.ready;const W=+$('size').value,H=Math.round(W*RATIO[S.fmt]/2)*2,fps=+$('fps').value,total=Math.round(S.items.length*S.dur*fps),delay=Math.round(100/fps),c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d',{willReadFrequently:true}),pal=S.transparent?[[0,0,0],...buildPalette().slice(0,255)]:buildPalette(),lut=new Map(),gif=GifWriter(W,H,pal,S.transparent);
+  function near(r,g,b){const key=(r<<16)|(g<<8)|b;if(lut.has(key))return lut.get(key);let best=0,dist=Infinity;pal.forEach((p,i)=>{if(S.transparent&&i===0)return;const d=2*(p[0]-r)**2+4*(p[1]-g)**2+3*(p[2]-b)**2;if(d<dist){dist=d;best=i}});lut.set(key,best);return best}
   for(let f=0;f<total;f++){render(x,W,H,f/fps,S);const data=x.getImageData(0,0,W,H).data,idx=new Uint8Array(W*H);for(let i=0;i<idx.length;i++)idx[i]=S.transparent&&data[i*4+3]<128?0:near(data[i*4],data[i*4+1],data[i*4+2]);gif.frame(idx,0,0,W,H,delay);if(f%2===0){$('status').textContent='Generating GIF: '+(f+1)+' / '+total+' frames';await new Promise(r=>setTimeout(r,0))}}
-  const blob=new Blob([gif.end()],{type:'image/gif'});download(blob,'public-data-motion.gif');$('status').textContent='GIF downloaded ('+(blob.size/1048576).toFixed(1)+' MB)';
+  const blob=new Blob([gif.end()],{type:'image/gif'});download(blob,'public-data-motion.gif');$('status').textContent='GIF downloaded · '+W+' × '+H+' px ('+(blob.size/1048576).toFixed(1)+' MB)';
  }catch(e){$('status').textContent='Could not export GIF: '+e.message}finally{exporting=false;controls.forEach(([e,disabled])=>e.disabled=disabled)}
 };
 drawItems();drawColors();document.fonts.ready.then(()=>requestAnimationFrame(tick));
