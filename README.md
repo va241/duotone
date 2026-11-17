@@ -1,6 +1,6 @@
 # Design Tools x Public Design UNIT
 
-Herramientas de imagen de Public: Duotone, Backgrounds y Masks.
+Herramientas de imagen de Public: Duotone, Photo Treatment, Backgrounds, Masks y Data Motion.
 
 Abre `index.html` en un navegador para usarla. Las fuentes y JSZip se cargan desde servicios externos.
 
@@ -27,3 +27,15 @@ La visual **Rectangle · number + text** permite 1–6 bloques en una fila, cada
 En Data Motion, **Transparent background (GIF / PNG)** permite exportar sin fondo y muestra una cuadrícula en la vista previa. El GIF reserva un índice transparente y limpia cada fotograma para evitar rastros. GIF admite transparencia binaria; los píxeles con alfa menor a 128 se exportan transparentes. PNG conserva el alfa completo.
 
 Data Motion exporta por defecto a **1920 px de ancho y 20 fps**, con opciones de 1280 y 2560 px. El lienzo se renderiza directamente a la resolución elegida (5:1: 1920 × 384; 16:9: 1920 × 1080). La conversión de color utiliza RGB completo para evitar que colores cercanos compartan por error una entrada de caché. La transparencia GIF sigue siendo binaria; PNG conserva los bordes semitransparentes.
+
+## Photo Treatment
+
+Selecciona **Photo Treatment** para dar un acabado natural y consistente a un lote. Comparte las imágenes cargadas con Duotone y Backgrounds: carga varias fotos o una carpeta, ajusta el tratamiento y descarga una imagen o el lote en ZIP, como JPG o PNG a resolución original. El procesamiento es local y no modifica los archivos originales. Mantén `photo-treatment.js` junto a `index.html`.
+
+**Level normalization** adapta el rango tonal y los medios tonos de cada foto mediante percentiles de luminancia, con límites suaves para conservar la intención de escenas oscuras o luminosas. Su intensidad es común a todo el lote; no pretende igualar escenas de iluminación diferente de forma exacta. Las imágenes de contraste casi nulo no se estiran.
+
+Incluye exposición, contraste, recuperación suave de sombras y compresión de luces, temperatura, tinte verde/magenta, saturación y ruido monocromático. **Noise / grain** agrega textura; no es reducción de ruido. El grano es determinista y se procesa a la misma resolución en la vista previa y la exportación; su apariencia en pantalla depende del tamaño de visualización. PNG conserva el canal alfa.
+
+Presets: **Natural**, **Soft daylight**, **Warm documentary** y **Neutral / no edits**. **Reset** vuelve a Natural. Los ajustes se aplican a todas las fotos y se capturan al iniciar cada descarga, por lo que cambiar controles durante un ZIP no modifica las imágenes pendientes de ese lote. **Hold: show original** permite comparar.
+
+Verificación del procesamiento: `node --test tests/photo-treatment.test.cjs`.

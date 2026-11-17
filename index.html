@@ -53,6 +53,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .btn.small{padding:6px 10px;font-size:12px;font-weight:500}
 .linkbtn{background:none;border:0;color:var(--accent);font:inherit;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;padding:0}
 .seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.tool-nav{max-width:760px!important}.tool-nav .seg{flex-wrap:wrap}.tool-nav .seg button{flex:1 1 110px}
 .seg button{flex:1;border:0;background:var(--bg);color:var(--fg);font:inherit;font-size:13px;padding:8px;cursor:pointer}
 .seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg)}
 .actions{display:grid;gap:8px}
@@ -85,13 +86,14 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 <div class="wrap">
   <header>
     <h1>Design Tools <span>x Public Design UNIT</span></h1>
-    <p class="sub">Duotones, atmospheric backgrounds, animated photo masks and report graphics.</p>
+    <p class="sub">Duotones, natural photo treatments, atmospheric backgrounds and animated graphics.</p>
   </header>
 
       <nav class="tool-nav" aria-label="Design tools">
         <div class="label">Tool</div>
         <div class="seg" role="group" aria-label="Tool">
           <button id="modeDuotone" aria-pressed="true">Duotone</button>
+          <button id="modePhoto" aria-pressed="false">Photo Treatment</button>
           <button id="modeBackground" aria-pressed="false">Backgrounds</button>
           <button id="modeData" aria-pressed="false">Data Motion</button>
           <button id="modeMask" aria-pressed="false">Masks</button>
@@ -100,6 +102,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
   <div class="main" id="imageWorkspace">
     <aside class="panel" aria-label="Settings">
 
+      <div class="group" id="photoControls" hidden></div>
       <div class="group" id="backgroundControls" hidden>
         <div class="label">Blur <button class="linkbtn" id="resetBlur">Reset</button></div>
         <div class="seg" role="group" aria-label="Blur type">
@@ -250,6 +253,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 </section></div></div>
 
 <script src="blur.js"></script>
+<script src="photo-treatment.js"></script>
 <script>
 const DEFAULTS={noise:5,black:18,white:255,gamma:1.04,c1:"#495A99",c2:"#F0ECDD"};
 const BUILTIN=[
@@ -269,7 +273,7 @@ try{userPresets=JSON.parse(localStorage.getItem("duotone.presets")||"[]")}catch(
 
 const hexOk=h=>/^#[0-9a-f]{6}$/i.test(h);
 const hexRgb=h=>[1,3,5].map(i=>parseInt(h.substr(i,2),16));
-function params(){return{mode:toolMode,blurType,blurAmount:+$("blurAmount").value,blurAngle:+$("blurAngle").value,colorize:$("backgroundDuotone").checked,noise:+$("noise").value,black:+$("black").value,white:+$("white").value,gamma:+$("gamma").value,c1:hexRgb($("c1").value),c2:hexRgb($("c2").value)}}
+function params(){return{mode:toolMode,photo:PhotoTreatment.settings(),blurType,blurAmount:+$("blurAmount").value,blurAngle:+$("blurAngle").value,colorize:$("backgroundDuotone").checked,noise:+$("noise").value,black:+$("black").value,white:+$("white").value,gamma:+$("gamma").value,c1:hexRgb($("c1").value),c2:hexRgb($("c2").value)}}
 
 // ---- Processing (same order as the Photoshop action) ----
 function makeNoise(n){
@@ -329,6 +333,7 @@ async function render(){
   paintProcessed(ctx,src,outBuf,p);
 }
 function paintProcessed(x,src,out,p){
+  if(p.mode==="photo"){PhotoTreatment.process(src,out,p.photo);x.putImageData(out,0,0);return;}
   if(p.mode==="duotone"||p.colorize){processInto(src,getNoise(src.width*src.height),out,p);x.putImageData(out,0,0);}
   else x.putImageData(src,0,0);
   if(p.mode==="backgrounds") BackgroundBlur.apply(x,p.blurType,p.blurAmount,p.blurAngle);
@@ -375,12 +380,14 @@ function refreshStrip(){
 
 // ---- Controls ----
 function syncUI(){
-  const bg=toolMode==="backgrounds", mask=toolMode==="masks", data=toolMode==="data";
+  const bg=toolMode==="backgrounds", mask=toolMode==="masks", data=toolMode==="data", photo=toolMode==="photo";
   $("dataWorkspace").hidden=!data;$("modeData").setAttribute("aria-pressed",data);
   $("imageWorkspace").hidden=mask||data;$("maskWorkspace").hidden=!mask;
   $("modeMask").setAttribute("aria-pressed",mask);
-  $("modeDuotone").setAttribute("aria-pressed",!bg&&!mask&&!data);$("modeBackground").setAttribute("aria-pressed",bg);
-  $("backgroundControls").hidden=!bg;$("colorControls").hidden=bg&&!$("backgroundDuotone").checked;
+  $("modeDuotone").setAttribute("aria-pressed",!bg&&!mask&&!data&&!photo);$("modeBackground").setAttribute("aria-pressed",bg);
+  $("modePhoto").setAttribute("aria-pressed",photo);$("photoControls").hidden=!photo;
+  $("emptyRamp").hidden=photo;
+  $("backgroundControls").hidden=!bg;$("colorControls").hidden=photo||(bg&&!$("backgroundDuotone").checked);
   $("blurGaussian").setAttribute("aria-pressed",blurType==="gaussian");$("blurMotion").setAttribute("aria-pressed",blurType==="motion");
   $("angleControl").hidden=blurType!=="motion";
   $("blurAmountO").textContent=$("blurAmount").value+" %";$("blurAngleO").textContent=$("blurAngle").value+"°";
@@ -392,6 +399,7 @@ function syncUI(){
   $("c1t").value=$("c1").value.toUpperCase();$("c2t").value=$("c2").value.toUpperCase();
   drawPresets();
 }
+$("modePhoto").onclick=()=>{toolMode="photo";syncUI();schedule();};
 $("modeDuotone").onclick=()=>{toolMode="duotone";syncUI();schedule();};
 $("modeData").onclick=()=>{toolMode="data";syncUI();};
 $("modeMask").onclick=()=>{toolMode="masks";syncUI();};
@@ -463,7 +471,7 @@ async function exportBlob(it,p=params(),format=fmt){
   paintProcessed(x,d.src,o,p);
   return new Promise(res=>c.toBlob(res,format==="png"?"image/png":"image/jpeg",0.95));
 }
-const fname=(it,p=params(),format=fmt)=>`${it.name}_${p.mode==="backgrounds"?p.blurType+"_background":"duotone"}.${format}`;
+const fname=(it,p=params(),format=fmt)=>`${it.name}_${p.mode==="backgrounds"?p.blurType+"_background":p.mode==="photo"?"natural":"duotone"}.${format}`;
 let downloads=null;
 (async()=>{try{downloads=await window.claude?.use?.("downloads");}catch(e){}})();
 async function offer(filename,blob){
@@ -491,6 +499,7 @@ $("dlAll").onclick=async()=>{
 };
 
 // ---- Start ----
+PhotoTreatment.mount($("photoControls"),schedule);
 syncUI();
 refreshStrip();
 </script>
